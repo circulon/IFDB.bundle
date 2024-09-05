@@ -1,3 +1,4 @@
+from datetime import datetime
 import re
 
 # URLS
@@ -23,7 +24,7 @@ SHORTEN_TITLES_MAP = {
         ]
     }
 
-VERSION = '1.0.3'
+VERSION = '1.0.4rc1'
 
 def Start():
     HTTP.CacheTime = CACHE_1WEEK
@@ -184,7 +185,7 @@ class IFDBAgent(Agent.Movies):
       info = sorted(info, key=lambda inf: inf['score'], reverse=True)
 
       for i in info:
-          results.Append(MetadataSearchResult(id = i['id'], name  = i['title'] + ' [' + str(i['date']) + ']', score = i['score'], thumb = i['thumb'], lang = lang))
+          results.Append(MetadataSearchResult(id = i['id'], name = i['title'], score = i['score'], thumb = i['thumb'], lang = lang))
 
           # If more than one result but current match is considered a good score use this and move on
           if not manual and len(info) > 1 and i['score'] >= GOOD_SCORE:
@@ -227,7 +228,7 @@ class IFDBAgent(Agent.Movies):
                 for t in titles:
                     orig_titles.append(self.getStringContentFromXPath(t, './a[text()]'))
 
-                metadata.original_title = ', '.join(orig_titles)
+                metadata.original_title = ', '.join(orig_titles[:(len(titles) / 2)])
             else:
                 metadata.original_title = original_title
 
@@ -265,6 +266,12 @@ class IFDBAgent(Agent.Movies):
             year = self.getFieldValue(html, 'jrFaneditreleasedate')
             pattern = re.compile(r'[^\d]+', re.IGNORECASE)
             metadata.year = int(pattern.sub('', year))
+
+            # Originally Available
+            date_format = year.split(" ")
+            new_date = date_format[0] + " 01 " + date_format[1]
+            date_time = datetime.strptime(new_date, "%B %d %Y").date()
+            metadata.originally_available_at = date_time
 
             # Brief Synopsis
             metadata.summary = self.getStringContentFromXPath(html, './/div[' + self.getCssSearchAttr("jrBriefsynopsis") + ']/div[' + self.getCssSearchAttr("jrFieldValue") + ']')
