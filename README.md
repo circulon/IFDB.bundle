@@ -1,4 +1,4 @@
-# IFDB.bundle
+IFDB.bundle
 =============
 
 Metadata agent for scraping information from the Internet Fanedit Database (IFDB).
