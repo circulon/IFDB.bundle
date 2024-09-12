@@ -1,5 +1,6 @@
 # IFDB.bundle
 =============
+
 Metadata agent for scraping information from the Internet Fanedit Database (IFDB).
 
 Filename titles must be able to be found with the IFDB search:
