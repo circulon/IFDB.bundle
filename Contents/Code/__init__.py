@@ -2,9 +2,9 @@ from datetime import datetime
 import re
 
 # URLS
-IFDB_BASE_URL = 'https://ifdb.fanedit.org/'
+IFDB_BASE_URL = 'https://fanedit.org/'
 IFDB_BASE_SEARCH_URL = IFDB_BASE_URL + 'fanedit-search/search-results/'
-IFDB_SEARCH_URL = IFDB_BASE_SEARCH_URL + '?query=%s&scope=title&keywords=%s&order=alpha'
+IFDB_SEARCH_URL = IFDB_BASE_SEARCH_URL + '?query=%s&scope=title&keywords=%s&order=rdate&jr_faneditreleasedate=%s'
 IFDB_MOVIE_INFO_URL = IFDB_BASE_URL + '?p=%s'
 
 REQUEST_DELAY = 0       # Delay used when requesting HTML, may be good to have to prevent being banned from the site
@@ -12,25 +12,12 @@ INITIAL_SCORE = 100     # Starting value for score before deductions are taken.
 GOOD_SCORE = 98         # Score required to short-circuit matching and stop searching.
 IGNORE_SCORE = 45       # Any score lower than this will be ignored.
 
-SHORTEN_TITLES_MAP = {
-    'sw': [
-        ["Star Wars", "SW"],
-        ["Episode", "Ep"]
-        ],
-    'lotr': [
-        ["The Lord of the Rings", "LotR"],
-        ["Lord of the Rings, The", "LotR"],
-        ["Lord of the Rings", "LotR"]
-        ]
-    }
-
-VERSION = '1.0.4rc1'
+VERSION = '1.0.4rc2'
 
 def Start():
     HTTP.CacheTime = CACHE_1WEEK
 
 class IFDBAgent(Agent.Movies):
-
   name = 'Internet Fanedit Database'
   languages = [Locale.Language.English]
   primary_provider = True
@@ -59,32 +46,6 @@ class IFDBAgent(Agent.Movies):
   def getFieldValueList(self, source, fieldName):
       return source.xpath('.//div[' + self.getCssSearchAttr(fieldName) + ']/div[' + self.getCssSearchAttr("jrFieldValue") + ']//li')
 
-  ##### Format titles based on key pased in #####
-  def titleFormat(self, key, title):
-      for pair in SHORTEN_TITLES_MAP[key]:
-          pattern = re.compile(pair[0], re.IGNORECASE)
-          title = pattern.sub(pair[1], title)
-
-      return title
-
-  ##### Check for phrases to shorten in fanedit title (this one is used for the results screen to avoid streams of incomprehensible Star Wars Episode.... entries #####
-  def shortenTitle(self, title):
-       if "star wars" in title.lower():
-           title = self.titleFormat('sw', title)
-       elif "lord of the rings" in title.lower():
-           title = self.titleFormat('lotr', title)
-
-       return title
-
-  ##### If preference set to shorten certain titles (Star Wars, Lord of the Rings) then shorten #####
-  def changeTitleIfPrefered(self, title):
-       if Prefs['shortensw'] and "star wars" in title.lower():
-           return self.titleFormat('sw', title)
-       elif Prefs['shortenlotr'] and "lord of the rings" in title.lower():
-           return self.titleFormat('lotr', title)
-
-       return title
-
   ##### Carry out search #####
   def doSearch(self, url):
       self.Log("###########  Doing Search  ###########")
@@ -106,8 +67,6 @@ class IFDBAgent(Agent.Movies):
 
           self.Log("Id found for %s: %s", title, id)
 
-          title = self.shortenTitle(title)
-
           date = self.getFieldValue(html, 'jrFaneditreleasedate')
           thumb = self.getStringContentFromXPath(html, './/div[' + self.getCssSearchAttr("jrListingMainImage") + ']//img/@src')
 
@@ -117,7 +76,6 @@ class IFDBAgent(Agent.Movies):
               'thumb': thumb,
               'date': date
               })
-
       else:
           results = html.xpath('//div[' + self.getCssSearchAttr("jrListItem") + ']')
 
@@ -127,8 +85,6 @@ class IFDBAgent(Agent.Movies):
               title = self.getStringContentFromXPath(r, './/div[' + self.getCssSearchAttr("jrContentTitle") + ']/a[text()]')
 
               self.Log("Title of result: %s", title)
-
-              title = self.shortenTitle(title)
 
               id = r.xpath('.//div[' + self.getCssSearchAttr("jrContentTitle") + ']/a/@id')[0].replace('jr-listing-title-', '')
               thumb = self.getStringContentFromXPath(r, './/div[' + self.getCssSearchAttr("jrListingThumbnail") + ']/a/img/@src')
@@ -163,13 +119,13 @@ class IFDBAgent(Agent.Movies):
       if len(stripped_name) == 0:
           stripped_name = media.name
 
-      searchUrl = IFDB_SEARCH_URL % ('all', String.Quote((stripped_name).encode('utf-8'), usePlus=True))
+      searchUrl = IFDB_SEARCH_URL % ('all', String.Quote((stripped_name).encode('utf-8'), usePlus=True), year)
 
       # Do the Search
       found = self.doSearch(searchUrl)
 
       if len(found) == 0:
-            self.Log('No results found for query "%s"%s', stripped_name, year)
+            self.Log('No results found for query "%s" %s', stripped_name, year)
             return
 
       info = []
@@ -204,8 +160,7 @@ class IFDBAgent(Agent.Movies):
             html = HTML.ElementFromURL(url, sleep=REQUEST_DELAY)
 
             # Title
-            title = self.getStringContentFromXPath(html, '//h1[' + self.getCssSearchAttr("contentheading") + ']/span[@itemprop="name"]/text()')
-            metadata.title = self.changeTitleIfPrefered(title)
+            metadata.title = self.getStringContentFromXPath(html, '//h1[' + self.getCssSearchAttr("contentheading") + ']/span[@itemprop="name"]/text()')
 
             # Rating
             rating = self.getStringContentFromXPath(html, '//span[' + self.getCssSearchAttr("jrRatingValue") + ']/span[1]')
@@ -215,7 +170,14 @@ class IFDBAgent(Agent.Movies):
 
             # Faneditor Name
             metadata.directors.clear()
-            metadata.directors.add(self.getFieldValue(html, 'jrFaneditorname'))
+            faneditor_name = self.getFieldValue(html, 'jrFaneditorname')
+            if len(faneditor_name) == 0:
+                faneditors = self.getFieldValueList(html, 'jrFaneditorname')
+                for f in faneditors:
+                    faned = self.getStringContentFromXPath(f, './a[text()]')
+                    metadata.directors.new().name = faned
+            else:
+                metadata.directors.new().name = faneditor_name
 
             # Tagline
             metadata.tagline = self.getFieldValue(html, 'jrTagline')
@@ -283,7 +245,6 @@ class IFDBAgent(Agent.Movies):
                 try:
                     metadata.posters[poster_url] = Proxy.Media(HTTP.Request(poster_url).content)
                 except: pass
-
 
       except Exception, e:
             Log.Error('Error obtaining data for item with id %s (%s) [%s] ', metadata.id, url, e.message)
