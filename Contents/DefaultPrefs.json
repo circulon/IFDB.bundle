@@ -1,6 +1,3 @@
-[{
-	"id": "debug",
-	"label": "Ouput debugging info in logs",
-	"type": "bool",
-	"default": "false"
-}]
+[
+  {"id": "match_type",   "label": "Search keyword matching", "type": "enum",  "default": "all", "values" : ["all","any","exact"]}
+]
