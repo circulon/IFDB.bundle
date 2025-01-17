@@ -1,250 +1,122 @@
 from datetime import datetime
-import re
 
-# URLS
-IFDB_BASE_URL = 'https://fanedit.org/'
-IFDB_BASE_SEARCH_URL = IFDB_BASE_URL + 'fanedit-search/search-results/'
-IFDB_SEARCH_URL = IFDB_BASE_SEARCH_URL + '?query=%s&scope=title&keywords=%s&order=rdate&jr_faneditreleasedate=%s'
-IFDB_MOVIE_INFO_URL = IFDB_BASE_URL + '?p=%s'
+import common
+from common import Log
+from ifdb import IFDB
 
-REQUEST_DELAY = 0       # Delay used when requesting HTML, may be good to have to prevent being banned from the site
-INITIAL_SCORE = 100     # Starting value for score before deductions are taken.
-GOOD_SCORE = 98         # Score required to short-circuit matching and stop searching.
-IGNORE_SCORE = 45       # Any score lower than this will be ignored.
+INITIAL_SCORE = 100  # Starting value for score before deductions are taken.
+GOOD_SCORE = 98  # Score required to short-circuit matching and stop searching.
+IGNORE_SCORE = 45  # Any score lower than this will be ignored.
 
-VERSION = '1.0.4rc2'
+VERSION = '2.0.0'
+
 
 def Start():
-    HTTP.CacheTime = CACHE_1WEEK
+  Log.Info("Internet Fanedit Database Agent by Circulon (Forked from tomfin46's v{}) - CPU: {}, OS: {}".format(VERSION, Platform.CPU, Platform.OS))
+  # common.GetPlexLibraries()
 
 class IFDBAgent(Agent.Movies):
-  name = 'Internet Fanedit Database'
+  name = 'IFDB Movies'
+  fallback_agent = False
   languages = [Locale.Language.English]
   primary_provider = True
-  #accepts_from = ['com.plexapp.agents.localmedia', 'com.plexapp.agents.thetvdb']
-  accepts_from = ['com.plexapp.agents.localmedia', 'com.plexapp.agents.themoviedb']
-  #contributes_to = ['com.plexapp.agents.thetvdb']
-  
-  ##### If logging pref turned on, output log message #####
-  def Log(self, message, *args):
-        if Prefs['debug']:
-            Log(message, *args)
-
-  ##### For using css class for xpath query in situations where multiple classes for a tag or trailing whitespace #####
-  def getCssSearchAttr(self, className):
-      return 'contains(concat(" ", normalize-space(@class), " "), " ' + className + ' ")'
-
-  ##### Return result of xpath query as string #####
-  def getStringContentFromXPath(self, source, query):
-        return source.xpath('string(' + query + ')')
-
-  ##### Pull out standard string fieldValue using xpath #####
-  def getFieldValue(self, source, fieldName):
-      return self.getStringContentFromXPath(source, './/div[' + self.getCssSearchAttr(fieldName) + ']/div[' + self.getCssSearchAttr("jrFieldValue") + ']/a[text()]')
-
-  ##### Pull out fieldValue that's a list using xpath #####
-  def getFieldValueList(self, source, fieldName):
-      return source.xpath('.//div[' + self.getCssSearchAttr(fieldName) + ']/div[' + self.getCssSearchAttr("jrFieldValue") + ']//li')
-
-  ##### Carry out search #####
-  def doSearch(self, url):
-      self.Log("###########  Doing Search  ###########")
-      self.Log("For Url: %s", url)
-
-      # Fetch HTML
-      html = HTML.ElementFromURL(url, sleep=REQUEST_DELAY)
-      found = []
-
-      title = self.getStringContentFromXPath(html, '//h1[' + self.getCssSearchAttr("contentheading") + ']/span[@itemprop="headline"]/text()')
-      self.Log("Title: %s", title)
-
-      if len(title) != 0:
-          # This means we got an exact match and have been redirected to the actual fanedit's page so we need to do some ugly stuff to pull out the id so it can be used in update method
-          # Cleanest way is to pull out the id from the fanedits compare checkbox button
-          compareBtns = html.xpath('//input[' + self.getCssSearchAttr("jrCheckListing") + ']')
-          pattern = re.compile('listing', re.IGNORECASE)
-          id = pattern.sub('', self.getStringContentFromXPath(compareBtns[0], './@data-listingid'))
-
-          self.Log("Id found for %s: %s", title, id)
-
-          date = self.getFieldValue(html, 'jrFaneditreleasedate')
-          thumb = self.getStringContentFromXPath(html, './/div[' + self.getCssSearchAttr("jrListingMainImage") + ']//img/@src')
-
-          found.append({
-              'id': id,
-              'title': title,
-              'thumb': thumb,
-              'date': date
-              })
-      else:
-          results = html.xpath('//div[' + self.getCssSearchAttr("jrListItem") + ']')
-
-          self.Log("%u results found", len(results))
-
-          for r in results:
-              title = self.getStringContentFromXPath(r, './/div[' + self.getCssSearchAttr("jrContentTitle") + ']/a[text()]')
-
-              self.Log("Title of result: %s", title)
-
-              id = r.xpath('.//div[' + self.getCssSearchAttr("jrContentTitle") + ']/a/@id')[0].replace('jr-listing-title-', '')
-              thumb = self.getStringContentFromXPath(r, './/div[' + self.getCssSearchAttr("jrListingThumbnail") + ']/a/img/@src')
-              date = self.getFieldValue(r, 'jrFaneditreleasedate')
-
-              found.append({
-                  'id': id,
-                  'title': title,
-                  'thumb': thumb,
-                  'date': date
-                  })
-
-      return found
+  accepts_from = ['com.plexapp.agents.localmedia']
+  contributes_to = None
 
   ##############################
   ##### Main Search Method #####
   ##############################
+  def search(self, results,  media, lang, manual):
+    from common import Log
+    Log.Info('=== search() ==='.ljust(157, '='))
+    orig_title = media.name
+    Log.Open(media=media, search=True, movie=True)
+    # if media.filename is not None: filename = String.Unquote(media.filename) #auto match only
+    Log.Info("title: '{}', name: '{}', filename: '{}', manual: '{}', year: '{}'".format(orig_title, media.name, media.filename, str(manual), media.year))
+    Log.Info("start: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")))
+    Log.Info("".ljust(157, '='))
+    if not orig_title:
+      return
 
-  def search(self, results, media, lang, manual):
+    year = None
+    if media.year and int(media.year) > 1900:
+      year = media.year
 
-      self.Log("Version of agent: %s", VERSION)
+    # Strip Diacritics from media name
+    stripped_name = String.StripDiacritics(orig_title)
+    if len(stripped_name) == 0:
+      stripped_name = media.name
 
-      if media.year and int(media.year) > 1900:
-          year = media.year
-      else:
-          year = ''
+    # Do the Search
+    found_results = IFDB().fetch_search_result(stripped_name, year)
+    if not found_results:
+      Log.Info('No results found for query "{}" {}'.format(stripped_name, year))
+      return
 
-      self.Log("Search for: %s", media.name)
+    scored_matches = []
+    # For each result:
+    # calculate Levenshtein Distance from our query
+    # add the lang key
+    for entry in found_results:
+      score = INITIAL_SCORE - abs(String.LevenshteinDistance(entry['name'].lower(), media.name.lower()))
+      if score < IGNORE_SCORE:
+        continue
 
-      # Strip Diacritics from media name
-      stripped_name = String.StripDiacritics(media.name)
-      if len(stripped_name) == 0:
-          stripped_name = media.name
+      entry['score'] = score
+      entry['lang'] = lang
+      scored_matches.append(entry)
 
-      searchUrl = IFDB_SEARCH_URL % ('all', String.Quote((stripped_name).encode('utf-8'), usePlus=True), year)
+    # Reverse sort by score so most likely match is at the top
+    scored_matches = sorted(scored_matches, key=lambda item: item['score'], reverse=True)
 
-      # Do the Search
-      found = self.doSearch(searchUrl)
-
-      if len(found) == 0:
-            self.Log('No results found for query "%s" %s', stripped_name, year)
-            return
-
-      info = []
-      # For each result calculate Levenshtein Distance from our query
-      for f in found:
-          score = INITIAL_SCORE - abs(String.LevenshteinDistance(f['title'].lower(), media.name.lower()))
-
-          if score >= IGNORE_SCORE:
-              f['score'] = score
-              info.append(f)
-
-      # Reverse sort by score so most likely match is at the top
-      info = sorted(info, key=lambda inf: inf['score'], reverse=True)
-
-      for i in info:
-          results.Append(MetadataSearchResult(id = i['id'], name = i['title'], score = i['score'], thumb = i['thumb'], lang = lang))
-
-          # If more than one result but current match is considered a good score use this and move on
-          if not manual and len(info) > 1 and i['score'] >= GOOD_SCORE:
-                break
+    for entry in scored_matches:
+      Log.Info("Adding Search result: id: {} score: {} title: {}".format(entry["id"], entry["score"], entry["name"]))
+      results.Append(MetadataSearchResult(**entry))
+      # If more than one result but current match is considered a good score use this and move on
+      if not manual and len(scored_matches) > 1 and entry['score'] >= GOOD_SCORE:
+        break
 
   #############################
   ##### Main Update Methd #####
   #############################
+  def update(self, metadata, media, lang, force):
+    Log.Info("########### update() ###########")
+    entry_info = IFDB().fetch_entry_with_id(metadata.id)
+    if not entry_info:
+      Log.Error("No IFDB entry foir id: {}".format(metadata.id))
+      return
 
-  def update(self, metadata, media, lang):
-
-      url = IFDB_MOVIE_INFO_URL % metadata.id
+    try:
+      metadata.title = entry_info["name"] or None
+      metadata.rating = entry_info["rating"] or None
+      metadata.tagline = entry_info["tag_line"] or None
+      metadata.tags.add(entry_info["fanedit_type"])
+      metadata.original_title = ', '.join(entry_info["original_titles"])
 
       try:
-            # Fetch HTML
-            html = HTML.ElementFromURL(url, sleep=REQUEST_DELAY)
+        metadata.originally_available_at = entry_info["original_release_date"]
+        metadata.year = entry_info["fanedit_release_date"].year
+      except:
+        pass
 
-            # Title
-            metadata.title = self.getStringContentFromXPath(html, '//h1[' + self.getCssSearchAttr("contentheading") + ']/span[@itemprop="name"]/text()')
+      metadata.summary = entry_info["summary"]
 
-            # Rating
-            rating = self.getStringContentFromXPath(html, '//span[' + self.getCssSearchAttr("jrRatingValue") + ']/span[1]')
-            if rating == '(0)':
-                rating = 0.0
-            metadata.rating = float(rating)
+      metadata.directors.clear()
+      for editor in entry_info["fan_editors"]:
+        metadata.directors.new().name = editor
 
-            # Faneditor Name
-            metadata.directors.clear()
-            faneditor_name = self.getFieldValue(html, 'jrFaneditorname')
-            if len(faneditor_name) == 0:
-                faneditors = self.getFieldValueList(html, 'jrFaneditorname')
-                for f in faneditors:
-                    faned = self.getStringContentFromXPath(f, './a[text()]')
-                    metadata.directors.new().name = faned
-            else:
-                metadata.directors.new().name = faneditor_name
+      for genre in entry_info["genres"]:
+        metadata.genres.add(genre)
 
-            # Tagline
-            metadata.tagline = self.getFieldValue(html, 'jrTagline')
+      for franchise in entry_info["franchises"]:
+        metadata.collections.add(franchise)
 
-            # Original Movie Titles
-            original_title = self.getFieldValue(html, 'jrOriginalmovietitle')
-            if len(original_title) == 0:
-                orig_titles = []
-                titles = self.getFieldValueList(html, 'jrOriginalmovietitle')
-                for t in titles:
-                    orig_titles.append(self.getStringContentFromXPath(t, './a[text()]'))
+      poster_url = entry_info["poster_url"]
+      if poster_url not in metadata.posters:
+        try:
+          metadata.posters[poster_url] = Proxy.Media(HTTP.Request(poster_url).content)
+        except:
+          pass
 
-                metadata.original_title = ', '.join(orig_titles[:(len(titles) / 2)])
-            else:
-                metadata.original_title = original_title
-
-            # Genres
-            genre = self.getFieldValue(html, 'jrGenre')
-            if len(genre) == 0:
-                genres = self.getFieldValueList(html, 'jrGenre')
-                for g in genres:
-                    gen = self.getStringContentFromXPath(g, './a[text()]')
-                    metadata.genres.add(gen)
-            else:
-                metadata.genres.add(genre)
-
-            # Franchises
-            franchise = self.getFieldValue(html, 'jrFranchise')
-            if len(franchise) == 0:
-                franchises = self.getFieldValueList(html, 'jrFranchise')
-                for f in franchises:
-                    fran = self.getStringContentFromXPath(f, './a[text()]')
-                    metadata.collections.add(fran)
-            else:
-                metadata.collections.add(franchise)
-
-            # Fanedit Type
-            fanedit_type = self.getFieldValue(html, 'jrFanedittype')
-            if len(fanedit_type) == 0:
-                types = self.getFieldValueList(html, 'jrFanedittype')
-                for t in types:
-                    type = self.getStringContentFromXPath(t, './a[text()]')
-                    metadata.tags.add(type)
-            else:
-                metadata.tags.add(fanedit_type)
-
-            # Release Date
-            year = self.getFieldValue(html, 'jrFaneditreleasedate')
-            pattern = re.compile(r'[^\d]+', re.IGNORECASE)
-            metadata.year = int(pattern.sub('', year))
-
-            # Originally Available
-            date_format = year.split(" ")
-            new_date = date_format[0] + " 01 " + date_format[1]
-            date_time = datetime.strptime(new_date, "%B %d %Y").date()
-            metadata.originally_available_at = date_time
-
-            # Brief Synopsis
-            metadata.summary = self.getStringContentFromXPath(html, './/div[' + self.getCssSearchAttr("jrBriefsynopsis") + ']/div[' + self.getCssSearchAttr("jrFieldValue") + ']')
-
-            # Poster
-            poster_url = self.getStringContentFromXPath(html, './/div[' + self.getCssSearchAttr("jrListingMainImage") + ']//a/@href')
-
-            if poster_url not in metadata.posters:
-                try:
-                    metadata.posters[poster_url] = Proxy.Media(HTTP.Request(poster_url).content)
-                except: pass
-
-      except Exception, e:
-            Log.Error('Error obtaining data for item with id %s (%s) [%s] ', metadata.id, url, e.message)
+    except Exception as e:
+      Log.Error('Error updating data for item with id {} [{}] '.format(metadata.id, str(e)))
