@@ -60,11 +60,13 @@ class IFDBAgent(Agent.Movies):
     # add the lang key
     for entry in found_results:
       score = INITIAL_SCORE - abs(String.LevenshteinDistance(entry['name'].lower(), media.name.lower()))
-      if score < IGNORE_SCORE:
-        continue
-
       entry['score'] = score
       entry['lang'] = lang
+      should_ignore = score < IGNORE_SCORE
+      Log.Info("Search result - name: {} score: {} year: {} should ignore result: {}".format(entry["name"], score, entry["year"], should_ignore))
+      if should_ignore:
+        continue
+
       scored_matches.append(entry)
 
     # Reverse sort by score so most likely match is at the top
