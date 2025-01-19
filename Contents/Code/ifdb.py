@@ -107,8 +107,8 @@ class IFDB:
   def entry_from_page_listing(self, root_node, extra_info=False):
     Log.Info("##### IFDB.entry_from_page_listing #####")
     Log.Info("### Extra Info: {}".format(extra_info))
-    banner_node = root_node.xpath('.//div[@id="primary"]/div')[0]
-    title = self.get_string_content_from_xpath(banner_node, './/div[contains(@class,"jrDetailHeader")]//h1/span/text()')
+    banner_node = root_node.xpath('//div[@id="primary"]/div')[0]
+    title = self.get_string_content_from_xpath(banner_node, '//h1/span[@itemprop="headline"]/text()')
     Log.Info("### Title: {}".format(title))
     # get the page id from the link
     page_url = self.get_string_content_from_xpath(root_node, '//link[@rel="canonical"][contains(@href, "fanedit.org")]/@href')
@@ -118,7 +118,7 @@ class IFDB:
     thumbnail_url = self.get_string_content_from_xpath(banner_node, '//div[contains(@class,"jrListingMainImage")]/a//img/@data-jr-src')
     Log.Info("### Thumbnail Url: {}".format(thumbnail_url))
     fields_node = banner_node.xpath('.//div[contains(@class,"jrCustomFields")]//div[contains(@class,"jrFaneditorname")]/../..')[0]
-    full_release_date = self.get_string_content_from_xpath(fields_node, './/div[contains(@class,"jrFaneditreleasedate")]//a/text()')
+    full_release_date = self.get_string_content_from_xpath(fields_node, '//div[contains(@class,"jrFaneditreleasedate")]//a/text()')
     Log.Info("### Fanedit release date: {}".format(full_release_date))
     release_date = datetime.strptime(full_release_date, "%B %Y").date()
     entry = {
