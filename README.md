@@ -1,16 +1,17 @@
 IFDB.bundle
 =============
 
-Metadata agent for scraping information from the Internet Fanedit Database (IFDB).
+A Plex metadata agent for scraping information from the Internet Fanedit Database (IFDB).
 
-Filename titles must be able to be found with the IFDB search:
+This is an extensive rewrite based on the original (https://github.com/tomfin46/IFDB.bundle) which no longer works.
 
-Format: `<title_in_ifdb> <year_released>`
+A big thanks to ZeroQI for the amazing work on the HAMA.bundle (https://github.com/ZeroQI/Hama.bundle) 
+which I used a couyple of common claases from... cheers
 
-```
-Star Wars Episode I - Cloak Of Deception 2014.mkv
-Star Wars Episode I - Cloak Of Deception (2014).mkv
-Star.Wars.Episode.I.-.Cloak.Of.Deception.2014.1080p-HAL9000.mkv
-```
+Issues should be created here: https://github.com/circulon/IFDB.bundle/issues
 
-Settings to enable log output are available in the agents settings area.
+**Metadata field alignments**
+TODO
+
+**Installation**
+TODO
