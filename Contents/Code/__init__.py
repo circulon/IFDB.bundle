@@ -6,7 +6,7 @@ INITIAL_SCORE = 100  # Starting value for score before deductions are taken.
 GOOD_SCORE = 98  # Score required to short-circuit matching and stop searching.
 IGNORE_SCORE = 45  # Any score lower than this will be ignored.
 
-VERSION = '2.0.0-beta1'
+VERSION = '2.0.0-rc1'
 
 
 def Start():
