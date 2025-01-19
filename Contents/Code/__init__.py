@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import common
-from common import Log
 from ifdb import IFDB
 
 INITIAL_SCORE = 100  # Starting value for score before deductions are taken.
@@ -27,7 +26,7 @@ class IFDBAgent(Agent.Movies):
   ##### Main Search Method #####
   ##############################
   def search(self, results,  media, lang, manual):
-    from common import Log
+    from common import Log  #Import here for startup logging to go to the plex pms log
     Log.Info('=== search() ==='.ljust(157, '='))
     orig_title = media.name
     Log.Open(media=media, search=True, movie=True)
@@ -51,6 +50,8 @@ class IFDBAgent(Agent.Movies):
     found_results = IFDB().fetch_search_result(stripped_name, year)
     if not found_results:
       Log.Info('No results found for query "{}" {}'.format(stripped_name, year))
+      Log.Info("end: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")))
+      Log.Close()
       return
 
     scored_matches = []
@@ -76,14 +77,21 @@ class IFDBAgent(Agent.Movies):
       if not manual and len(scored_matches) > 1 and entry['score'] >= GOOD_SCORE:
         break
 
+    Log.Info("end: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")))
+    Log.Close()
+
   #############################
   ##### Main Update Methd #####
   #############################
   def update(self, metadata, media, lang, force):
+    from common import Log  #Import here for startup logging to go to the plex pms log
     Log.Info("########### update() ###########")
+    Log.Info("start: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")))
     entry_info = IFDB().fetch_entry_with_id(metadata.id)
     if not entry_info:
       Log.Error("No IFDB entry foir id: {}".format(metadata.id))
+      Log.Info("end: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")))
+      Log.Close()
       return
 
     try:
@@ -120,3 +128,6 @@ class IFDBAgent(Agent.Movies):
 
     except Exception as e:
       Log.Error('Error updating data for item with id {} [{}] '.format(metadata.id, str(e)))
+
+    Log.Info("end: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")))
+    Log.Close()
