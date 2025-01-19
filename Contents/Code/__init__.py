@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import common
-from ifdb import IFDB
 
 INITIAL_SCORE = 100  # Starting value for score before deductions are taken.
 GOOD_SCORE = 98  # Score required to short-circuit matching and stop searching.
@@ -47,6 +46,7 @@ class IFDBAgent(Agent.Movies):
       stripped_name = media.name
 
     # Do the Search
+    from ifdb import IFDB
     found_results = IFDB().fetch_search_result(stripped_name, year)
     if not found_results:
       Log.Info('No results found for query "{}" {}'.format(stripped_name, year))
@@ -87,6 +87,7 @@ class IFDBAgent(Agent.Movies):
     from common import Log  #Import here for startup logging to go to the plex pms log
     Log.Info("########### update() ###########")
     Log.Info("start: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")))
+    from ifdb import IFDB
     entry_info = IFDB().fetch_entry_with_id(metadata.id)
     if not entry_info:
       Log.Error("No IFDB entry foir id: {}".format(metadata.id))
