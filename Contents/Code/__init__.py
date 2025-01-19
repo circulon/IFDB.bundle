@@ -96,9 +96,9 @@ class IFDBAgent(Agent.Movies):
       return
 
     try:
-      metadata.title = entry_info["name"] or None
-      metadata.rating = entry_info["rating"] or None
-      metadata.tagline = entry_info["tag_line"] or None
+      metadata.title = entry_info["name"]
+      metadata.rating = entry_info["rating"]
+      metadata.tagline = entry_info["tag_line"]
       metadata.tags.add(entry_info["fanedit_type"])
       metadata.original_title = ', '.join(entry_info["original_titles"])
 
