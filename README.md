@@ -26,12 +26,12 @@ These steps are intentionally general as PMS runs on so many platforms its impos
 ##### Steps:
 - Find the `Plug-ins` folder on your PMS system (Use the Plex Support articles above).
 - Install the IFDB Plug-in via one of the following methods:
-  - Dounload the zip 
-    - from [here](https://github.com/circulon/IFDB.bundle/archive/refs/heads/master.zip) 
+  - ****Option 1**: From a zip file** 
+    - get the latest code from [here](https://github.com/circulon/IFDB.bundle/archive/refs/heads/master.zip) 
     - extract it and rename the extracted folder `master` to `IFDB.bundle`
     - copy/move the `IFDB.bundle` folder to the `Plugins-ins` folder you found above
-  - Clone the repo
-    - cd to the `Pkug-ins` folder
+  - **Option 2: Clone the git repo**
+    - cd to the `Pkug-ins` folder you found above
     - `git clone https://github.com/circulon/IFDB.bundle.git`
 - Fix permissions on the `IFDB.bundle` folder (optional)
 - Retsrt the Plex server
