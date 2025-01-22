@@ -13,7 +13,7 @@ Issues should be created here: https://github.com/circulon/IFDB.bundle/issues
 ### Installation
 #### Plex Support articles
 - Finding the Plug-ins folder: https://support.plex.tv/articles/201106098-how-do-i-find-the-plug-ins-folder/
-- Manually installing Plug-ibs: https://support.plex.tv/articles/201187656-how-do-i-manually-install-a-plugin/
+- Manually installing Plug-ins: https://support.plex.tv/articles/201187656-how-do-i-manually-install-a-plugin/
 
 #### Docker containers
 If your using a docker container you should check the Path or Volume vars for `/config` or `/appdata` container paths.
@@ -29,9 +29,9 @@ These steps are intentionally general as PMS runs on so many platforms its impos
   - ****Option 1**: From a zip file** 
     - get the latest code from [here](https://github.com/circulon/IFDB.bundle/archive/refs/heads/master.zip) 
     - extract it and rename the extracted folder `master` to `IFDB.bundle`
-    - copy/move the `IFDB.bundle` folder to the `Plugins-ins` folder you found above
+    - copy/move the `IFDB.bundle` folder to the `Plug-ins` folder you found above
   - **Option 2: Clone the git repo**
-    - cd to the `Pkug-ins` folder you found above
+    - cd to the `Plug-ins` folder you found above
     - `git clone https://github.com/circulon/IFDB.bundle.git`
 - Fix permissions on the `IFDB.bundle` folder (optional)
 - Restart the Plex server
