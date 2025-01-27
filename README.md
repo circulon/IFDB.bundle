@@ -3,12 +3,16 @@ IFDB.bundle
 
 A Plex metadata agent for scraping information from the Internet Fanedit Database (IFDB).
 
-This is an extensive rewrite based on the original (https://github.com/tomfin46/IFDB.bundle) which no longer works.
+# Fork
+
+This fork exists because upstream isn't maintained and does not work correctly anymore.
+
+Issues should be created here: https://github.com/circulon/IFDB.bundle/issues
+
+#### Thanks
 
 A big thanks to ZeroQI for the amazing work on the HAMA.bundle (https://github.com/ZeroQI/Hama.bundle) 
 which I used a couple of common classes from... cheers
-
-Issues should be created here: https://github.com/circulon/IFDB.bundle/issues
 
 ### Installation
 #### Plex Support articles
