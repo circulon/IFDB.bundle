@@ -1,11 +1,9 @@
-import time
 import urlparse
 
 import requests
 import common
 from common import Log
 from urlparse import urlparse
-from datetime import datetime
 
 # URLS
 IFDB_BASE_URL = 'https://fanedit.org/'
@@ -80,29 +78,32 @@ class IFDB:
 
   # entry extractors
   def entries_from_search_result(self, root_node):
-      Log.Info("###### IFDB.entries_from_search_result()  ###########")
-      results = []
-      entry_nodes = root_node.xpath('//*[@id="jr-pagenav-ajax"]/div[3]//div[contains(@class,"jrListingTitle")]/../..')
-      Log.Info("### Search Found: {} entries ###".format(len(entry_nodes)))
-      for entry in entry_nodes:
-        title = self.get_string_content_from_xpath(entry, './/div[contains(@class,"jrListingTitle")]//a/text()')
-        # ifdb_id = self.get_string_content_from_xpath(entry, './/div[contains(@class,"jrCompareButton")]/input/@value')
-        page_url = self.get_string_content_from_xpath(entry, './/div[contains(@class,"jrListingTitle")]/a/@href')
-        parsed_url = urlparse(page_url)
-        ifdb_id = parsed_url.path.replace('/', '')
-        thumb = self.get_string_content_from_xpath(entry, './/div[contains(@class,"jrListingThumbnail")]//img/@data-jr-src')
-        full_release_date = self.get_field_link_value(entry, "jrFaneditreleasedate")
-        release_date = datetime.strptime(full_release_date, "%B %Y").date()
-        entry = {
-          "id": ifdb_id,
-          "name": title,
-          "year": release_date.year,
-          "thumb": thumb,
-        }
-        results.append(entry)
-        Log.Info(("search entry: {}".format(entry)))
+    Log.Info("###### IFDB.entries_from_search_result()  ###########")
+    results = []
+    entry_nodes = root_node.xpath('//*[@id="jr-pagenav-ajax"]/div[3]//div[contains(@class,"jrListingTitle")]/../..')
+    Log.Info("### Search Found: {} entries ###".format(len(entry_nodes)))
+    for entry in entry_nodes:
+      title = self.get_string_content_from_xpath(entry, './/div[contains(@class,"jrListingTitle")]//a/text()')
+      # ifdb_id = self.get_string_content_from_xpath(entry, './/div[contains(@class,"jrCompareButton")]/input/@value')
+      page_url = self.get_string_content_from_xpath(entry, './/div[contains(@class,"jrListingTitle")]/a/@href')
+      parsed_url = urlparse(page_url)
+      ifdb_id = parsed_url.path.replace('/', '')
+      thumb = self.get_string_content_from_xpath(entry, './/div[contains(@class,"jrListingThumbnail")]//img/@data-jr-src')
+      full_release_date = self.get_field_link_value(entry, "jrFaneditreleasedate")
+      if full_release_date:
+        release_year = common.parse_flexible_date(full_release_date).year
+      else:
+        release_year = None
+      entry = {
+        "id": ifdb_id,
+        "name": title,
+        "year": release_year,
+        "thumb": thumb,
+      }
+      results.append(entry)
+      Log.Info(("search entry: {}".format(entry)))
 
-      return results
+    return results
 
   def entry_from_page_listing(self, root_node, extra_info=False):
     Log.Info("##### IFDB.entry_from_page_listing #####")
@@ -115,12 +116,12 @@ class IFDB:
     parsed_url = urlparse(page_url)
     ifdb_id = parsed_url.path.replace('/', '')
     Log.Info("### IFDB id: {}".format(ifdb_id))
-    thumbnail_url = self.get_string_content_from_xpath(banner_node, '//div[contains(@class,"jrListingMainImage")]/a//img/@data-jr-src')
+    thumbnail_url = self.get_string_content_from_xpath(banner_node, '//div[contains(@class,"jrListingMainImage")]/a//img/@src')
     Log.Info("### Thumbnail Url: {}".format(thumbnail_url))
     fields_node = banner_node.xpath('.//div[contains(@class,"jrCustomFields")]//div[contains(@class,"jrFaneditorname")]/../..')[0]
     full_release_date = self.get_string_content_from_xpath(fields_node, '//div[contains(@class,"jrFaneditreleasedate")]//a/text()')
     Log.Info("### Fanedit release date: {}".format(full_release_date))
-    release_date = datetime.strptime(full_release_date, "%B %Y").date()
+    release_date = common.parse_flexible_date(full_release_date)
     entry = {
       "id": str(ifdb_id),
       "name": title,
@@ -170,14 +171,14 @@ class IFDB:
 
     # Fanedit release year
     release_date_str = self.get_field_link_value(fields_node, "jrFaneditreleasedate")
-    release_date = datetime.strptime(release_date_str, "%B %Y").date()
+    release_date = common.parse_flexible_date(release_date_str)
     Log.Info("### Fanedit Release Date: {}".format(str(release_date)))
     info["fanedit_release_date"] = release_date
 
     # Original movie Release Date
     original_release_date_str = self.get_field_value(fields_node, "jrOriginalreleasedate")
     Log.Info("### Original Release Year: {}".format(original_release_date_str))
-    original_release_date = datetime.strptime(original_release_date_str, "%Y").date()
+    original_release_date = common.parse_flexible_date(original_release_date_str)
     info["original_release_date"] = original_release_date
 
     reviews_node = root_node.xpath('//div[@id="editorReviews"]')[0]
