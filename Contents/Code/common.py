@@ -1,6 +1,8 @@
 import logging
 import os
+import re
 import threading
+from datetime import datetime
 
 PlexRoot          = Core.app_support_path
 CachePath         = os.path.join(PlexRoot, "Plug-in Support", "Data", "com.plexapp.agents.ifdb", "DataItems")
@@ -141,3 +143,43 @@ def GetPlexLibraries():
         Log.Root('[{}] id: {:>2}, type: {:<6}, agent: {:<30}, scanner: {:<30}, library: {:<24}, path: {}'.format('x' if directory.get("agent") == "com.plexapp.agents.ifdb" else ' ', directory.get("key"), directory.get('type'), directory.get("agent"), directory.get("scanner"), directory.get('title'), location.get("path")))
   except Exception as e:
     Log.Root("PLEX_LIBRARY_URL - Exception: '{}'".format(e))
+
+def parse_flexible_date(date_string):
+  """Parse dates in various formats to a datetime.date object."""
+  if not date_string:
+    return None
+
+  date_string = date_string.strip()
+
+  # Handle year range format (e.g., "2003/2004" or "2012 / 2013 / 2014")
+  if "/" in date_string:
+    # Split by slash and strip whitespace from each part
+    parts = [part.strip() for part in date_string.split("/")]
+
+    # Check if all parts are valid 4-digit years
+    is_valid_year_format = True
+    for part in parts:
+      if not re.match(r'^\d{4}$', part):
+        is_valid_year_format = False
+        break
+
+    if is_valid_year_format and parts:
+      # Get the last (most recent) year
+      latest_year = parts[-1]
+      return datetime.strptime(latest_year, "%Y").date()
+
+  formats = [
+    "%B %Y",       # Full month: "January 2022"
+    "%b %Y",       # Abbreviated month: "Dec 2022"
+    "%b. %Y",      # Abbreviated month with period: "Aug. 2022"
+    "%Y"           # Year only: "2008"
+  ]
+
+  for fmt in formats:
+    try:
+      return datetime.strptime(date_string, fmt).date()
+    except ValueError:
+      continue
+
+  # If none of the formats worked
+  raise ValueError("Could not parse date string: '{}'".format(date_string))
