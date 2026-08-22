@@ -3,6 +3,13 @@ IFDB.bundle
 
 A Plex metadata agent for scraping information from the Internet Fanedit Database (IFDB).
 
+# Legacy Project Notice
+
+Plex is planning to remove support for this type of Agent.
+As such this project has been reworked as a Plex compatible `Metadata Provider`
+[here](https://github.com/circulon/fanedit-provider). 
+
+
 # Fork
 
 This fork exists because upstream isn't maintained and does not work correctly anymore.
